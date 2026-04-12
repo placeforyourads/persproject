@@ -158,6 +158,8 @@ class Vehicle:
         self.current_node = start_node_id
         self.previous_node: Optional[int] = None
         self.time_elapsed = 0.0
+        self.progress = 0.0
+        self.edge = None
 
     def __repr__(self):
         return (
