@@ -2,20 +2,26 @@ from graph import *
 import heapq
 from typing import Dict, Union, List
 import math
+import random
 
 
-def dijkstra(graph: Graph, start_node_id: int, return_path: bool = False, index = 0) -> Union[Dict[int, float], Dict[int, List[int]]]:
+def dijkstra(graph: Graph, start_node_id: int, return_path: bool = False, index = 0) -> Union[dict[int, float], dict[int, List[int]]]:
+    """Алгоритм Дейкстры -- алгоритм для моделирования кратчайшего пути по времени
+
+    :param graph: Graph -- граф, на котором будет выполняться алгоритм Дейкстры
+    :param start_node_id: int -- стартовая вершина алгоритма
+    :param return_path: bool = False -- возврат путей (True если нужен)
+    :param index: 
+    :return:
+    """
     if start_node_id not in graph.nodes:
         raise ValueError("Start node not found in graph.")
 
-    # Инициализация расстояний
     distances = {node_id: float("inf") for node_id in graph.nodes}
     distances[start_node_id] = 0
 
-    # Для восстановления путей
     previous = {node_id: None for node_id in graph.nodes}
 
-    # Очередь с приоритетом (min-heap)
     priority_queue = [(0, start_node_id)]
 
     while priority_queue:
@@ -24,18 +30,15 @@ def dijkstra(graph: Graph, start_node_id: int, return_path: bool = False, index 
         if current_distance > distances[current_node]:
             continue
 
-        # Перебор всех рёбер
         for edge in graph.edges.values():
 
-            weight = edge.weights[index] if edge.weights else 1  # если весов нет — считаем 1
+            weight = edge.weights[index] if edge.weights else 1
 
-            # Ориентированное ребро
             if edge.directed:
                 if edge.v1_id == current_node:
                     neighbor = edge.v2_id
                 else:
                     continue
-            # Неориентированное
             else:
                 if edge.v1_id == current_node:
                     neighbor = edge.v2_id
@@ -54,7 +57,6 @@ def dijkstra(graph: Graph, start_node_id: int, return_path: bool = False, index 
     if not return_path:
         return distances
 
-    # Восстановление путей
     paths = {}
 
     for node_id in graph.nodes:
@@ -156,7 +158,7 @@ def a_star(
 class Vehicle:
     def __init__(self, start_node_id: int):
         self.current_node = start_node_id
-        self.previous_node: Optional[int] = None
+        self.previous_node: int = None
         self.time_elapsed = 0.0
         self.progress = 0.0
         self.edge = None
@@ -169,33 +171,18 @@ class Vehicle:
         )
 
 def manhattan_step(graph: Graph, vehicle: Vehicle) -> None:
-    """
-    Один шаг движения машины.
-    Машина:
-    - равновероятно выбирает дорогу
-    - не может ехать туда, откуда приехала
-    - если тупик — возвращается
-    - время движения берётся из Edge.weights[0]
-    """
-
     current = vehicle.current_node
     prev = vehicle.previous_node
-
-    # --- поиск доступных соседей ---
     neighbors = []
 
     for edge in graph.edges.values():
 
         weight = edge.weights[0] if edge.weights else 1
-
-        # ориентированное ребро
         if edge.directed:
             if edge.v1_id == current:
                 neighbor = edge.v2_id
             else:
                 continue
-
-        # неориентированное
         else:
             if edge.v1_id == current:
                 neighbor = edge.v2_id
@@ -207,16 +194,12 @@ def manhattan_step(graph: Graph, vehicle: Vehicle) -> None:
         neighbors.append((neighbor, weight))
 
     if not neighbors:
-        return  # изолированная вершина
+        return None
 
-    # --- убираем дорогу, откуда приехали ---
     filtered = [n for n in neighbors if n[0] != prev]
 
-    # --- если тупик ---
     if not filtered:
-        # возвращаемся назад
         next_node = prev
-        # ищем вес обратного ребра
         for edge in graph.edges.values():
             if (
                 not edge.directed
@@ -231,10 +214,8 @@ def manhattan_step(graph: Graph, vehicle: Vehicle) -> None:
             weight = 1
 
     else:
-        # равновероятный выбор
         next_node, weight = random.choice(filtered)
 
-    # --- обновляем состояние машины ---
     vehicle.previous_node = current
     vehicle.current_node = next_node
     vehicle.time_elapsed += weight

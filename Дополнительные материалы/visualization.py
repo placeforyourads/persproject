@@ -1,4 +1,8 @@
 from algorhythms import *
+from matplotlib.animation import FuncAnimation
+import matplotlib.pyplot as plt
+
+
 def choose_next_edge(graph: Graph, vehicle: Vehicle):
     current = vehicle.current_node
     prev = vehicle.previous_node
@@ -27,11 +31,10 @@ def choose_next_edge(graph: Graph, vehicle: Vehicle):
 
     return random.choice(filtered)
 
-def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
 
+def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
     # если машина стоит в узле — выбираем ребро
     if vehicle.edge is None:
-
         edge = choose_next_edge(graph, vehicle)
 
         vehicle.edge = edge
@@ -54,12 +57,12 @@ def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
         vehicle.edge = None
         vehicle.progress = 0.0
 
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 
 def animate(graph: Graph, vehicles: list[Vehicle]):
-
     fig, ax = plt.subplots()
 
     # рисуем дороги
@@ -95,9 +98,7 @@ def animate(graph: Graph, vehicles: list[Vehicle]):
     plt.show()
 
 
-
 def choose_manhattan_edge(graph: Graph, vehicle: Vehicle):
-
     current = vehicle.current_node
     prev = vehicle.previous_node
 
@@ -134,8 +135,8 @@ def choose_manhattan_edge(graph: Graph, vehicle: Vehicle):
     edge, _ = random.choice(filtered)
     return edge
 
-def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
 
+def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
     # если машина в узле — выбираем дорогу
     if vehicle.edge is None:
 
@@ -164,45 +165,8 @@ def vehicle_step(graph: Graph, vehicle: Vehicle, dt=0.05):
         vehicle.edge = None
         vehicle.progress = 0.0
 
-from matplotlib.animation import FuncAnimation
-import matplotlib.pyplot as plt
-
-
-def animate(graph: Graph, vehicles):
-
-    fig, ax = plt.subplots()
-
-    for edge in graph.edges.values():
-        n1 = graph.nodes[edge.v1_id]
-        n2 = graph.nodes[edge.v2_id]
-
-        ax.plot(
-            [n1.coords[0], n2.coords[0]],
-            [n1.coords[1], n2.coords[1]],
-            color="black"
-        )
-
-    points = [ax.plot([], [], 'o')[0] for _ in vehicles]
-
-    def update(frame):
-
-        for v in vehicles:
-            vehicle_step(graph, v)
-
-        for i, v in enumerate(vehicles):
-            x, y = vehicle_position(graph, v)
-            points[i].set_data([x], [y])
-
-        return points
-
-    ax.set_aspect("equal")
-
-    anim = FuncAnimation(fig, update, interval=50)
-
-    plt.show()
 
 def vehicle_position(graph: Graph, vehicle: Vehicle):
-
     if vehicle.edge is None:
         return graph.nodes[vehicle.current_node].coords
 

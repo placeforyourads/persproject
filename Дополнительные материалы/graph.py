@@ -1,8 +1,13 @@
-from typing import Tuple, Optional, Dict
-import random
 
 
 class Node:
+    """Вершина графа
+
+        Параметры:
+        node_id: int, ID вершины
+        x: float, координата вершины по X
+        y: float, координата вершины по Y
+        """
     def __init__(self, node_id: int, x: float, y: float):
         self.id = node_id
         self.coords = (x, y)
@@ -12,13 +17,22 @@ class Node:
 
 
 class Edge:
+    """Ребро графа
+
+        Параметры:
+            node_id: int, ID ребра
+            v1_id: int, ID вершины начала ребра
+            v2_id: int, ID вершины конца ребра
+            directed: bool = False, направление ребра (по умолчанию не ориентировано)
+            weights = tuple[float] = None, веса вершин
+            """
     def __init__(
-        self,
-        edge_id: int,
-        v1_id: int,
-        v2_id: int,
-        directed: bool = False,
-        weights: Optional[Tuple[float, ...]] = None,
+            self,
+            edge_id: int,
+            v1_id: int,
+            v2_id: int,
+            directed: bool = False,
+            weights: tuple[float] = None,
     ):
         self.id = edge_id
         self.v1_id = v1_id
@@ -34,25 +48,53 @@ class Edge:
 
 
 class Graph:
+    """
+    Класс графа
+
+    Функции:
+    add_node(node_id: int, x: float, y: float) -- добавление вершины
+    add_edge(edge_id: int, v1_id: int, v2_id: int, ...) -- создание ребра и добавление его в граф
+    copy_from(other_graph: Graph) -- копирование графа
+    remove_node(node_id: int) -- удаление вершины из графа
+    remove_edge(edge_id: int) -- удаление ребра из графа
+    """
     def __init__(self):
-        self.nodes: Dict[int, Node] = {}
-        self.edges: Dict[int, Edge] = {}
+        self.nodes = dict()
+        self.edges = dict()
 
     # --- Добавление вершины ---
     def add_node(self, node_id: int, x: float, y: float):
+        """Создаёт вершину и добавляет её в граф.
+        Если ID вершины уже занят, то вызывает ValueError
+
+        :param node_id: int -- ID вершины
+        :param x: float -- координата вершины по X
+        :param y: float -- координата вершины по Y
+        :return: None
+        """
         if node_id in self.nodes:
             raise ValueError(f"Node with ID {node_id} already exists.")
         self.nodes[node_id] = Node(node_id, x, y)
 
-    # --- Добавление ребра по ID ---
+
     def add_edge_by_id(
-        self,
-        edge_id: int,
-        v1_id: int,
-        v2_id: int,
-        directed: bool = False,
-        weights: Optional[Tuple[float, ...]] = None, # много весов нужно, чтобы на всякий случай хранить вес, время его прохода и другие параметры ребра
+            self,
+            edge_id: int,
+            v1_id: int,
+            v2_id: int,
+            directed: bool = False,
+            weights: tuple[float] = None,
     ):
+        """Создаёт ребро с заданным ID и помещает его в граф
+        Если одна из вершин отсутствует в графе или ID уже занято другим ребром, то вызывает ValueError
+
+        :param edge_id: int -- ID ребра
+        :param v1_id: int -- ID начальной вершины ребра
+        :param v2_id: int -- ID конечной вершины ребра
+        :param directed: bool = False -- односторонность ребра (True если ребро ориентированное)
+        :param weights: tuple[float] = None -- веса ребра
+        :return: None
+        """
         if edge_id in self.edges:
             raise ValueError(f"Edge with ID {edge_id} already exists.")
 
@@ -61,48 +103,13 @@ class Graph:
 
         self.edges[edge_id] = Edge(edge_id, v1_id, v2_id, directed, weights)
 
-    # --- Добавление ребра по вершинам ---
-    def add_edge_by_nodes(
-        self,
-        v1_id: int,
-        v2_id: int,
-        edge_id: Optional[int] = None,
-        directed: bool = False,
-        weights: Optional[Tuple[float, ...]] = None,
-    ):
-        if v1_id not in self.nodes or v2_id not in self.nodes:
-            raise ValueError("Both nodes must exist in the graph.")
 
-        # Проверяем, есть ли уже такое ребро
-        for edge in self.edges.values():
-            if (
-                edge.v1_id == v1_id
-                and edge.v2_id == v2_id
-                and edge.directed == directed
-            ):
-                return edge  # уже существует
-
-            if (
-                not directed
-                and not edge.directed
-                and edge.v1_id == v2_id
-                and edge.v2_id == v1_id
-            ):
-                return edge
-
-        # Если ID не передан — генерируем
-        if edge_id is None:
-            edge_id = max(self.edges.keys(), default=0) + 1
-
-        if edge_id in self.edges:
-            raise ValueError("Edge ID already exists.")
-
-        edge = Edge(edge_id, v1_id, v2_id, directed, weights)
-        self.edges[edge_id] = edge
-        return edge
-
-    # --- Копирование графа ---
     def copy_from(self, other_graph: "Graph"):
+        """Копирует заданный граф
+
+        :param other_graph: other_graph: Graph -- граф, который нужно скопировать
+        :return: None
+        """
         self.nodes = {
             node_id: Node(node.id, *node.coords)
             for node_id, node in other_graph.nodes.items()
@@ -118,12 +125,16 @@ class Graph:
             for edge_id, edge in other_graph.edges.items()
         }
 
-    # --- Удаление вершины ---
     def remove_node(self, node_id: int):
+        """Удаляет вершину и все прилегающие к ней рёбра в вершине.
+        Вызывает ValueError, если вершины нет в графе
+
+        :param node_id:
+        :return:
+        """
         if node_id not in self.nodes:
             raise ValueError("Node not found.")
 
-        # Удаляем все связанные рёбра
         edges_to_delete = [
             edge_id
             for edge_id, edge in self.edges.items()
@@ -134,8 +145,13 @@ class Graph:
 
         del self.nodes[node_id]
 
-    # --- Удаление ребра ---
     def remove_edge(self, edge_id: int):
+        """Удаляет ребро из графа
+        Вызывает ValueError, если ребра нет в графе
+
+        :param edge_id: int -- ID ребра, которое нужно удалить
+        :return: None
+        """
         if edge_id not in self.edges:
             raise ValueError("Edge not found.")
         del self.edges[edge_id]
