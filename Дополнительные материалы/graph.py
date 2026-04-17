@@ -1,3 +1,4 @@
+from math import *
 
 
 class Node:
@@ -8,6 +9,7 @@ class Node:
         x: float, координата вершины по X
         y: float, координата вершины по Y
         """
+
     def __init__(self, node_id: int, x: float, y: float):
         self.id = node_id
         self.coords = (x, y)
@@ -26,6 +28,7 @@ class Edge:
             directed: bool = False, направление ребра (по умолчанию не ориентировано)
             weights = tuple[float] = None, веса вершин
             """
+
     def __init__(
             self,
             edge_id: int,
@@ -58,6 +61,7 @@ class Graph:
     remove_node(node_id: int) -- удаление вершины из графа
     remove_edge(edge_id: int) -- удаление ребра из графа
     """
+
     def __init__(self):
         self.nodes = dict()
         self.edges = dict()
@@ -75,7 +79,6 @@ class Graph:
         if node_id in self.nodes:
             raise ValueError(f"Node with ID {node_id} already exists.")
         self.nodes[node_id] = Node(node_id, x, y)
-
 
     def add_edge_by_id(
             self,
@@ -103,7 +106,6 @@ class Graph:
 
         self.edges[edge_id] = Edge(edge_id, v1_id, v2_id, directed, weights)
 
-
     def copy_from(self, other_graph: "Graph"):
         """Копирует заданный граф
 
@@ -130,7 +132,7 @@ class Graph:
         Вызывает ValueError, если вершины нет в графе
 
         :param node_id:
-        :return:
+        :return: None
         """
         if node_id not in self.nodes:
             raise ValueError("Node not found.")
@@ -155,3 +157,64 @@ class Graph:
         if edge_id not in self.edges:
             raise ValueError("Edge not found.")
         del self.edges[edge_id]
+
+
+def haversine(x1: float, y1: float, x2: float, y2: float) -> float:
+    """Формула гаверсинуса
+    Позволяет найти расстояние между двумя точками (в метрах), зная их координаты
+
+    Параметры:
+    :param x1: float -- координата X первой точки
+    :param y1: float -- координата Y первой точки
+    :param x2: float -- координата X второй точки
+    :param y2: float -- координата Y второй точки
+    :return: length: float -- длина между двумя точками в метрах
+    """
+    R_earth = 6371000
+    rad_1 = radians(y1)
+    rad_2 = radians(y2)
+    drad = radians(y2 - y1)
+    dlambda = radians(x2 - x1)
+    a = sin(drad / 2) ** 2 + cos(rad_1) * cos(rad_2) * sin(dlambda / 2) ** 2
+    length = 2 * R_earth * atan2(sqrt(a), sqrt(1 - a))
+    return length
+
+
+def graph_from_file(osm_file: str):
+    """Функция, преобразовывающая .osm-файл в граф
+
+    :param osm_file: str -- файл с расширением .osm
+    :return: graph: Graph -- граф, содержащий сетку дорог
+    """
+    try:
+        import xml.etree.ElementTree as ET
+    except Exception:
+        raise ImportError("Библиотека xml не установлена.")
+    else:
+        tree = ET.parse(osm_file)
+        root = tree.getroot()
+        graph = Graph()
+
+        for node in root.findall("node"):
+            node_id = int(node.attrib["id"])
+            lon = float(node.attrib["lon"])
+            lat = float(node.attrib["lat"])
+            graph.add_node(node_id, lon, lat)
+
+        edge_id = 1
+        for way in root.findall("way"):
+            tags = {tag.attrib["k"]: tag.attrib["v"] for tag in way.findall('tag')}
+            oneway = tags.get("oneway", 'no') in ['yes']
+            node_refs = [int(nd.attrib['ref']) for nd in way.findall('nd')]
+            for k in range(len(node_refs) - 1):
+                n1 = node_refs[k]
+                n2 = node_refs[k + 1]
+                if n1 not in graph.nodes or n2 not in graph.nodes:
+                    raise UserWarning("Файл имеет в себе неточности, и как следствие, его невозможно обработать")
+                x1, y1 = graph.nodes[n1].coords
+                x2, y2 = graph.nodes[n2].coords
+                length = haversine(x1, y1, x2, y2)
+                graph.add_edge_by_id(edge_id, n1, n2, directed=oneway, weights=tuple([length]))
+
+                edge_id += 1
+    return graph
