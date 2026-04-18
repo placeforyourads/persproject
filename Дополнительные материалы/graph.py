@@ -71,13 +71,13 @@ class Graph:
         """Создаёт вершину и добавляет её в граф.
         Если ID вершины уже занят, то вызывает ValueError
 
+        Параметры:
         :param node_id: int -- ID вершины
         :param x: float -- координата вершины по X
         :param y: float -- координата вершины по Y
-        :return: None
         """
         if node_id in self.nodes:
-            raise ValueError(f"Node with ID {node_id} already exists.")
+            raise ValueError(f"Ребро с ID {node_id} уже существует.")
         self.nodes[node_id] = Node(node_id, x, y)
 
     def add_edge_by_id(
@@ -91,26 +91,26 @@ class Graph:
         """Создаёт ребро с заданным ID и помещает его в граф
         Если одна из вершин отсутствует в графе или ID уже занято другим ребром, то вызывает ValueError
 
+        Параметры:
         :param edge_id: int -- ID ребра
         :param v1_id: int -- ID начальной вершины ребра
         :param v2_id: int -- ID конечной вершины ребра
         :param directed: bool = False -- односторонность ребра (True если ребро ориентированное)
         :param weights: tuple[float] = None -- веса ребра
-        :return: None
         """
         if edge_id in self.edges:
-            raise ValueError(f"Edge with ID {edge_id} already exists.")
+            raise ValueError(f"Ребро с ID {edge_id} уже существует в графе.")
 
         if v1_id not in self.nodes or v2_id not in self.nodes:
-            raise ValueError("Both nodes must exist in the graph.")
+            raise ValueError("Одна из вершин не найдена.")
 
         self.edges[edge_id] = Edge(edge_id, v1_id, v2_id, directed, weights)
 
     def copy_from(self, other_graph: "Graph"):
         """Копирует заданный граф
 
+        Параметры:
         :param other_graph: other_graph: Graph -- граф, который нужно скопировать
-        :return: None
         """
         self.nodes = {
             node_id: Node(node.id, *node.coords)
@@ -131,11 +131,11 @@ class Graph:
         """Удаляет вершину и все прилегающие к ней рёбра в вершине.
         Вызывает ValueError, если вершины нет в графе
 
-        :param node_id:
-        :return: None
+        Параметры:
+        :param node_id: ID вершины, которую нужно удалить
         """
         if node_id not in self.nodes:
-            raise ValueError("Node not found.")
+            raise ValueError("Вершина не найдена.")
 
         edges_to_delete = [
             edge_id
@@ -151,24 +151,25 @@ class Graph:
         """Удаляет ребро из графа
         Вызывает ValueError, если ребра нет в графе
 
+        Параметры:
         :param edge_id: int -- ID ребра, которое нужно удалить
-        :return: None
         """
         if edge_id not in self.edges:
-            raise ValueError("Edge not found.")
+            raise ValueError("Вершнина не найдена.")
         del self.edges[edge_id]
 
 
 def haversine(x1: float, y1: float, x2: float, y2: float) -> float:
     """Формула гаверсинуса
-    Позволяет найти расстояние между двумя точками (в метрах), зная их координаты
+    Находит расстояние между двумя точками (в метрах), с заданными координатами концов
 
     Параметры:
     :param x1: float -- координата X первой точки
     :param y1: float -- координата Y первой точки
     :param x2: float -- координата X второй точки
     :param y2: float -- координата Y второй точки
-    :return: length: float -- длина между двумя точками в метрах
+
+    Возвращает length: float -- длина между двумя точками в метрах
     """
     R_earth = 6371000
     rad_1 = radians(y1)
@@ -183,8 +184,10 @@ def haversine(x1: float, y1: float, x2: float, y2: float) -> float:
 def graph_from_file(osm_file: str):
     """Функция, преобразовывающая .osm-файл в граф
 
+    Параметры:
     :param osm_file: str -- файл с расширением .osm
-    :return: graph: Graph -- граф, содержащий сетку дорог
+
+    Возвращает graph: Graph -- граф, содержащий сетку дорог
     """
     try:
         import xml.etree.ElementTree as ET
@@ -217,4 +220,54 @@ def graph_from_file(osm_file: str):
                 graph.add_edge_by_id(edge_id, n1, n2, directed=oneway, weights=tuple([length]))
 
                 edge_id += 1
-    return graph
+        return graph
+    finally:
+        return None
+
+def file_from_place(place:str, path:str='current_folder') -> bool:
+    """Функция, сохраняющая карту местности в .osm-файл
+    !!! Возможно потребуется VPN для корректной работы !!!
+
+    Параметры:
+    :param place: str -- место
+    :param path: str = current_folder -- папка, куда сохраняется файл. Если поле не заполнить, то файл сохранится в текущую папку
+
+    Возвращает bool, где True -- успешное сохранение, False -- неуспешное сохранение
+    """
+    try:
+        import osmnx as ox
+    except Exception:
+        raise ImportError("Библиотека osmnx не установлена. ")
+    else:
+
+        G = ox.graph.graph_from_place(place, network_type='all', simplify=False, retain_all = True)
+        if path == 'current_folder':
+            path = '.'
+        try:
+            ox.io.save_graph_xml(G, filepath=f'{path}/')
+        except Exception:
+            raise UserWarning("Указанного пути не существует.")
+        else:
+            return True
+        finally:
+            return False
+    finally:
+        return False
+
+def create_graph_from_place(place, path) -> Graph:
+    """Возвращает граф, созданный из данного места
+
+    !!! Возможно требует VPN для корректной работы !!!
+
+    Параметры
+    :param place: str -- место, из которого нужно создать граф
+    :param path: str -- папка, куда нужно сохранить файл
+
+    Возвращает graph: Graph -- граф, созданный из карты указанного места
+    """
+    flag = file_from_place(place, path)
+    if flag == True:
+        graph = graph_from_file(f'{path}/{place}.osm')
+        return graph
+    else:
+        raise UserWarning("Не удалось создать граф из места")
